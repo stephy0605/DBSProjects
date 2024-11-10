@@ -1,0 +1,21 @@
+---
+- name: Load Docker image from tar and run it
+  hosts: azure_vms
+  become: yes
+  tasks:
+    - name: Load Docker image from .tar file
+      docker_image:
+        load_path: /home/azureadmin/my_image.tar  # Path to your tar image
+        name: my_image  # The image name you want to use after loading
+        state: present
+    
+    - name: Run Docker container from loaded image
+      docker_container:
+        name: my_container
+        image: my_image  # This matches the image name you used in the previous task
+        state: started
+        exposed_ports:
+          - "80"
+        published_ports:
+          - "80:80"  # Exposing port 8080 to the host
+        restart_policy: always

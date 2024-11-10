@@ -1,0 +1,125 @@
+name: Create Azure VM Instance
+
+on: 
+  workflow_dispatch
+
+jobs:
+  terraform-deploy:
+    runs-on: devops
+
+    steps:
+      # Step 1: Check out the latest code
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+
+      # Step 3: Authenticate with Azure using email and password
+      - name: Azure CLI Login with Email and Password
+        shell: pwsh
+        run: |
+          Install-Module -Name Posh-SSH -Force -AllowClobber
+          Import-Module Posh-SSH
+          
+          $username = "azureadmin"
+          $password = "Dbs@1234567"
+          
+          Set-Location Terraform_Scripts
+          try 
+          {
+              Write-Output "Initializing Terraform..."
+              terraform init -upgrade
+              if ($LASTEXITCODE -ne 0) {
+                  throw "Error: Terraform init failed."
+              }
+          
+              Write-Output "Creating Terraform plan..."
+              terraform plan -out main.tfplan
+              if ($LASTEXITCODE -ne 0) {
+                  throw "Error: Terraform plan failed."
+              }
+          
+              Write-Output "Applying Terraform plan..."
+              terraform apply main.tfplan
+              if ($LASTEXITCODE -ne 0) {
+                  throw "Error: Terraform apply failed."
+              }
+          
+              Write-Output "Terraform operations completed successfully."    
+          
+              $json = terraform output -json
+              $parsedJson = $json | ConvertFrom-Json
+              $publicIpAddress = "$($parsedJson.public_ip_address.value)"
+              $publicIP = $publicIpAddress
+              Write-Output $publicIP
+              Start-Sleep -Second 15
+              $keyPath = "~/.ssh/id_rsa"
+              $publicKeyPath = "~/.ssh/id_rsa.pub"  
+              if (-not (Test-Path $keyPath)) 
+              {
+                  Write-Host "Generating SSH key..."
+                  echo "yes" | ssh-keygen -t rsa -b 2048 -f ~/.ssh/id_rsa -N "" -v
+                  Write-Host "SSH Key generated"
+              }
+              $publicKeyContent = Get-Content $publicKeyPath
+              $passwordSecure = ConvertTo-SecureString -AsPlainText -String $password -Force
+              $credential = New-Object System.Management.Automation.PSCredential($username, $passwordSecure)
+              $session = New-SSHSession -ComputerName $publicIP -Credential $credential -AcceptKey
+              if ($session.Connected) 
+              {
+                  Write-Host "Connected to VM successfully."
+                  $remoteAuthorizedKeysPath = "/home/azureadmin/.ssh/authorized_keys"
+
+                  Invoke-SSHCommand -SessionId $session.SessionId -Command "mkdir -p /home/azureadmin/.ssh"
+                  Invoke-SSHCommand -SessionId $session.SessionId -Command "echo '$publicKeyContent' >> $remoteAuthorizedKeysPath"
+                  Invoke-SSHCommand -SessionId $session.SessionId -Command "chmod 600 $remoteAuthorizedKeysPath"
+                  Invoke-SSHCommand -SessionId $session.SessionId -Command "chmod 700 ~/.ssh/"
+          
+                  Write-Host "Public key added to the remote VM."
+          
+                  $res2 = Invoke-SSHCommand -SessionId $session.SessionId -Command "sudo apt update -y"
+                  Write-Output $res2.Output
+                  Start-Sleep -Second 20
+                  $res1 = Invoke-SSHCommand -SessionId $session.SessionId -Command "sudo apt upgrade -y"
+                  Write-Output $res1.Output
+                  Start-Sleep -Second 20
+                  $res = Invoke-SSHCommand -SessionId $session.SessionId -Command "sudo apt install docker.io -y"
+                  Write-Output $res.Output
+                  Start-Sleep -Second 25
+                  Invoke-SSHCommand -SessionId $session.SessionId -Command "docker --version"
+          
+                  Set-Location ..
+                  Set-Location HelloWorld
+          
+                  echo 'Q!w2e3r4t5y6u7' | sudo -S docker build -t automation_app:latest .
+          
+                  Set-Location ..
+          
+                  Set-Location Install_App_VM_Ansible
+                  pwd
+                  ls
+          
+                  echo 'Q!w2e3r4t5y6u7' | sudo -S docker save -o automation_app.tar automation_app:latest
+          
+                  Start-Sleep -Second 5
+
+                  Write-Host "SCP File transfer started!"
+                  echo 'Q!w2e3r4t5y6u7' | sudo -S sshpass -p 'Dbs@1234567' scp -o StrictHostKeyChecking=no automation_app.tar azureadmin@$publicIP':/home/azureadmin/'
+                  Write-Host "SCP File transfer completed!"
+                  Start-Sleep -Second 5
+          
+                  $docker_load = Invoke-SSHCommand -SessionId $session.SessionId -Command "echo 'Dbs@1234567' | sudo -S docker load -i /home/azureadmin/automation_app.tar"
+                  Write-Output $docker_load.Output
+          
+                  $removeFile = Invoke-SSHCommand -SessionId $session.SessionId -Command "rm automation_app.tar"
+                  Write-Output $removeFile.Output
+          
+                  $docker_run = Invoke-SSHCommand -SessionId $session.SessionId -Command "echo 'Dbs@1234567' | sudo -S docker run -d -p 80:80 --name my_automation automation_app"
+                  Write-Output $docker_run.Output
+          
+                  Remove-SSHSession -SessionId $session.SessionId
+              }
+          }
+          catch
+          {
+              Write-Output "Error: $_"
+          }

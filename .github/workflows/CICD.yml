@@ -1,0 +1,148 @@
+name: CI CD Automatic Deployment
+
+on: 
+  push: 
+    branches:
+      main
+jobs:
+  terraform-deploy:
+    runs-on: devops
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Deploy Docker Image to Infrastructure
+        shell: pwsh
+        run: |
+          # Retrieve VM IPs
+          $vm_ips = az vm list-ip-addresses --query "[].virtualMachine.network.publicIpAddresses[].ipAddress" -o tsv
+          
+          # Set up variables
+          $username = "azureadmin"
+          $app_folder = "HelloWorld"
+          
+          echo 'Q!w2e3r4t5y6u7' | sudo docker --version
+          
+          Set-Location -Path $app_folder
+          
+          # Build Docker image
+          Write-Output "Building Docker image..."
+          try {
+              sudo docker build -t automated_app .
+          } catch {
+              Write-Output "Error building Docker image, skipping..."
+          }
+          
+          # Save Docker image as a .tar file
+          Write-Output "Saving Docker image as tar..."
+          try {
+              sudo docker save automated_app -o automated_app.tar
+              Get-ChildItem
+          } catch {
+              Write-Output "Error saving Docker image as tar, skipping..."
+          }
+          
+          # Loop through each IP
+          foreach ($ip in $vm_ips) {
+              $ip = $ip.Trim()
+              Write-Output "Connecting to VM with IP: $ip to check and install Docker..."
+          
+              # Update and install Docker on the remote VM
+              try {
+                  ssh -t -o StrictHostKeyChecking=no "$username@$ip" "sudo DEBIAN_FRONTEND=noninteractive apt update -y; sudo DEBIAN_FRONTEND=noninteractive apt upgrade -y; sudo DEBIAN_FRONTEND=noninteractive apt install -y docker.io"
+                  ssh -t -o StrictHostKeyChecking=no "$username@$ip" "sudo systemctl start docker"
+                  ssh -t -o StrictHostKeyChecking=no "$username@$ip" "sudo docker image rm automated_app"
+              } catch {
+                  Write-Output "Error during Docker installation or removal on $ip, skipping..."
+                  continue
+              }
+          
+              # Transfer Docker image to remote server
+              Write-Output "Sending Docker image .tar file to remote server..."
+              try {
+                  sudo scp automated_app.tar $username@$ip':/home/azureadmin/'
+                  if ($LASTEXITCODE -eq 0) {
+                      Write-Output "Docker image successfully transferred to the remote server."
+                  } else {
+                      Write-Output "Failed to transfer the Docker image to the remote server."
+                      continue
+                  }
+              } catch {
+                  Write-Output "Error transferring Docker image to $ip, skipping..."
+                  continue
+              }
+          
+              # Load Docker image on remote server
+              try {
+                  ssh -t -o StrictHostKeyChecking=no "$username@$ip" "cd /home/azureadmin/ && sudo docker load -i automated_app.tar"
+                  ssh -t -o StrictHostKeyChecking=no "$username@$ip" "sudo docker rm -f my_automation"
+                  ssh -t -o StrictHostKeyChecking=no "$username@$ip" "rm automated_app.tar"
+              } catch {
+                  Write-Output "Error loading Docker image on $ip, skipping..."
+                  continue
+              }
+          
+              # Check Docker images and running containers
+              try {
+                  ssh -t -o StrictHostKeyChecking=no "$username@$ip" "sudo docker images"
+                  ssh -t -o StrictHostKeyChecking=no "$username@$ip" "sudo docker ps"
+                  ssh -t -o StrictHostKeyChecking=no "$username@$ip" "sudo lsof -i :80"
+              } catch {
+                  Write-Output "Error checking Docker images or containers on $ip, skipping..."
+              }
+          
+              # Stop any existing container and run new container
+              try {
+                  ssh -t -o StrictHostKeyChecking=no "$username@$ip" "sudo docker stop my_automation"
+                  ssh -t -o StrictHostKeyChecking=no "$username@$ip" "sudo docker run -d -p 80:80 --name my_automation automated_app"
+              } catch {
+                  Write-Output "Error running Docker container on $ip, skipping..."
+              }
+          }
+
+
+
+          
+          # vm_ips=$(az vm list-ip-addresses --query "[].virtualMachine.network.publicIpAddresses[].ipAddress" -o tsv)
+  
+          # sudo docker image rm automated_app || echo "Skip"
+          # username="azureadmin"
+          
+          # app_folder="HelloWorld"        
+          # ls
+          # pwd
+          # cd $app_folder
+          
+          # echo "Building Docker image..."
+          
+          # sudo docker build -t automated_app .
+          
+          # echo "Saving Docker image as tar..."
+          # sudo docker save automated_app -o automated_app.tar
+          # ls
+          
+          
+          # for ip in $vm_ips; do
+          #     echo $ip
+          #     echo "Connecting to VM with IP: $ip to check and install Docker..."
+          #     ip=$(echo "$ip" | tr -d '\r')
+          #     ssh -t -o StrictHostKeyChecking=no "$username@$ip" "sudo DEBIAN_FRONTEND=noninteractive apt update -y && sudo DEBIAN_FRONTEND=noninteractive apt upgrade -y && sudo DEBIAN_FRONTEND=noninteractive apt install -y docker.io"
+          #     ssh -t -o StrictHostKeyChecking=no "$username@$ip" "sudo systemctl start docker"
+          #     ssh -t -o StrictHostKeyChecking=no "$username@$ip" "sudo docker image rm automated_app"
+          #     echo "Sending Docker image .tar file to remote server..."
+          #     scp automated_app.tar "$username@$ip:/home/azureadmin/" || echo "Skip"
+          #     if [ $? -eq 0 ]; then
+          #         echo "Docker image successfully transferred to the remote server."
+          #     else
+          #         echo "Failed to transfer the Docker image to the remote server."
+          #         exit 1
+          #     fi
+          #     ssh -t -o StrictHostKeyChecking=no "$username@$ip" "cd /home/azureadmin/ && sudo docker load -i automated_app.tar"
+          #     ssh -t -o StrictHostKeyChecking=no "$username@$ip" "sudo docker rm -f my_automation"
+          #     ssh -t -o StrictHostKeyChecking=no "$username@$ip" "rm automation_app.tar"
+          #     ssh -t -o StrictHostKeyChecking=no "$username@$ip" "sudo docker images"
+          #     ssh -t -o StrictHostKeyChecking=no "$username@$ip" "sudo docker ps"
+          #     ssh -t -o StrictHostKeyChecking=no "$username@$ip" "sudo docker run -d -p 80:80 --name my_automation automated_app"
+          # done
+  
