@@ -1,21 +1,42 @@
 ---
-- name: Load Docker image from tar and run it
+- name: Deploy Docker Image on Azure VM
   hosts: azure_vms
-  become: yes
+  become: true
+  vars:
+    docker_image_tar: "automated_app.tar"  # Local path to the tar file
+    image_name: "automated_app"  # Name for the image to be used in the container
+    container_name: "my_automation"  # Name for the running container
+    docker_image_tar_dest: "/home/azureadmin/automated_app.tar"  # Path on the Azure VM where the tar file will be copied
+
   tasks:
-    - name: Load Docker image from .tar file
-      docker_image:
-        load_path: /home/azureadmin/my_image.tar  # Path to your tar image
-        name: my_image  # The image name you want to use after loading
+    - name: Ensure Docker is installed
+      apt:
+        name: docker.io
         state: present
-    
-    - name: Run Docker container from loaded image
+        update_cache: yes
+      when: ansible_facts['distribution'] == 'Ubuntu'
+
+    - name: Upload Docker image tar file to VM
+      copy:
+        src: "{{ docker_image_tar }}"
+        dest: "{{ docker_image_tar_dest }}"
+        mode: '0644'
+
+    - name: Load Docker image from tar file
+      command: "docker load -i /home/azureadmin/automated_app.tar"
+      args:
+        creates: "/var/lib/docker/images/{{ image_name }}.tar"
+
+    - name: Run Docker container from the loaded image
       docker_container:
-        name: my_container
-        image: my_image  # This matches the image name you used in the previous task
+        name: "{{ container_name }}"
+        image: "{{ image_name }}"
         state: started
-        exposed_ports:
-          - "80"
-        published_ports:
-          - "80:80"  # Exposing port 8080 to the host
         restart_policy: always
+        ports:
+          - "80:80"  # Example port mapping, adjust as needed
+
+    - name: Clean up the uploaded tar file
+      file:
+        path: "{{ docker_image_tar_dest }}"
+        state: absent
