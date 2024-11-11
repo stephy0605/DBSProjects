@@ -15,6 +15,12 @@
         state: present
         update_cache: yes
       when: ansible_facts['distribution'] == 'Ubuntu'
+      
+    - name: Ensure Docker service is enabled to start at boot
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
 
     - name: Upload Docker image tar file to VM
       copy:

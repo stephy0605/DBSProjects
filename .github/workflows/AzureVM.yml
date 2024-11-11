@@ -90,7 +90,7 @@ jobs:
                   Set-Location ..
                   Set-Location HelloWorld
           
-                  echo '12345' | sudo -S docker build -t automation_app:latest .
+                  echo 'Q!w2e3r4t5y6u7' | sudo -S docker build -t automation_app:latest .
           
                   Set-Location ..
           
@@ -98,12 +98,12 @@ jobs:
                   pwd
                   ls
           
-                  echo '12345' | sudo -S docker save -o automation_app.tar automation_app:latest
+                  echo 'Q!w2e3r4t5y6u7' | sudo -S docker save -o automation_app.tar automation_app:latest
           
                   Start-Sleep -Second 5
 
                   Write-Host "SCP File transfer started!"
-                  echo '12345' | sudo -S sshpass -p 'Dbs@1234567' scp -o StrictHostKeyChecking=no automation_app.tar azureadmin@$publicIP':/home/azureadmin/'
+                  echo 'Q!w2e3r4t5y6u7' | sudo -S sshpass -p 'Dbs@1234567' scp -o StrictHostKeyChecking=no automation_app.tar azureadmin@$publicIP':/home/azureadmin/'
                   Write-Host "SCP File transfer completed!"
                   Start-Sleep -Second 5
           
