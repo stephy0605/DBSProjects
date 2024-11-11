@@ -89,7 +89,8 @@ Process:
       Clean the old Docker Image .tar files.
    
    Output:
-     ![image](https://github.com/user-attachments/assets/3d4fcb1a-23cb-4683-8185-cc648ea2a1b3)
+![image](https://github.com/user-attachments/assets/41591668-4e8c-4190-be6e-a59dba3d6033)
+
 
 This image show the final output of the application deployment.
 
