@@ -67,15 +67,15 @@ Process:
   Then go to the Github Action Task
   In the terminal, you will find the IP address for the Azure VM.
 
-  ![image](https://github.com/user-attachments/assets/ad28bc26-425d-4926-9072-fffee70481de)
+![image](https://github.com/user-attachments/assets/b374307d-facd-4eee-873c-2965b2c3295b)
+
   
-  ![image](https://github.com/user-attachments/assets/5de4093b-2520-44b6-adf4-4b7a54868c68)
+![image](https://github.com/user-attachments/assets/66f9c434-9527-4dca-abdc-3b84c6b436fc)
 
-  ![image](https://github.com/user-attachments/assets/30197571-9d23-446c-94c0-78e206001979)
+![image](https://github.com/user-attachments/assets/9fe0594f-c5c8-4ad0-89a7-7cfb6c97f5c5)
 
-  ![image](https://github.com/user-attachments/assets/2dd42d35-ea78-4ae5-946b-a2155fb5c754)
 
-  ![image](https://github.com/user-attachments/assets/96f1423e-ac51-47d2-a1d1-e06b9270cf49)
+![image](https://github.com/user-attachments/assets/b8b69210-4293-44c4-a130-d13311f8d5e4)
 
 
 2. Automated CI CD Deployment:
@@ -89,12 +89,12 @@ Process:
       Clean the old Docker Image .tar files.
    
    Output:
-      - ![image](https://github.com/user-attachments/assets/ea92b455-33d7-4e03-b25d-74c558c67799)
-      - ![image](https://github.com/user-attachments/assets/1fa27eee-f236-4f1a-941c-b9bcb60c0fa7)
+     ![image](https://github.com/user-attachments/assets/3d4fcb1a-23cb-4683-8185-cc648ea2a1b3)
 
 This image show the final output of the application deployment.
 
-![image](https://github.com/user-attachments/assets/5b3d7907-c29b-4bb2-939c-faeb4cf23060)
+![image](https://github.com/user-attachments/assets/ff98ab10-5b39-455c-a568-10d24343d5a2)
+
 
         
 
