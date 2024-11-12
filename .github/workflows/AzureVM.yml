@@ -75,46 +75,63 @@ jobs:
                   Invoke-SSHCommand -SessionId $session.SessionId -Command "chmod 700 ~/.ssh/"
           
                   Write-Host "Public key added to the remote VM."
-          
-                  $res2 = Invoke-SSHCommand -SessionId $session.SessionId -Command "sudo apt update -y"
-                  Write-Output $res2.Output
-                  Start-Sleep -Second 20
-                  $res1 = Invoke-SSHCommand -SessionId $session.SessionId -Command "sudo apt upgrade -y"
-                  Write-Output $res1.Output
-                  Start-Sleep -Second 20
-                  $res = Invoke-SSHCommand -SessionId $session.SessionId -Command "sudo apt install docker.io -y"
-                  Write-Output $res.Output
-                  Start-Sleep -Second 25
-                  Invoke-SSHCommand -SessionId $session.SessionId -Command "docker --version"
-          
+
+                  $vm_ips = az vm list-ip-addresses --query "[].virtualMachine.network.publicIpAddresses[].ipAddress" -o tsv
                   Set-Location ..
                   Set-Location HelloWorld
-          
-                  echo '12345' | sudo -S docker build -t automation_app:latest .
-          
+                  docker build -t automated_app .
                   Set-Location ..
-          
                   Set-Location Install_App_VM_Ansible
-                  pwd
-                  ls
+                  docker save -o automated_app.tar automated_app
+                  $hostsContent = @"
+          [azure_vm]
+          azure_vms ansible_host=$publicIP ansible_user=azureadmin
+          "@      
+                  $hostsFilePath = "hosts.ini"
+                  $hostsContent | Out-File -FilePath $hostsFilePath -Encoding UTF8
+                  Write-Host "hosts.ini file has been created at $hostsFilePath"
+                  ansible-playbook -i hosts.ini "deploy_docker_image.yml" -e ansible_password=${{ secrets.AZURE_PASS }} --ssh-extra-args="-o StrictHostKeyChecking=no"
+                  
           
-                  echo '12345' | sudo -S docker save -o automation_app.tar automation_app:latest
+                  # $res2 = Invoke-SSHCommand -SessionId $session.SessionId -Command "sudo apt update -y"
+                  # Write-Output $res2.Output
+                  # Start-Sleep -Second 20
+                  # $res1 = Invoke-SSHCommand -SessionId $session.SessionId -Command "sudo apt upgrade -y"
+                  # Write-Output $res1.Output
+                  # Start-Sleep -Second 20
+                  # $res = Invoke-SSHCommand -SessionId $session.SessionId -Command "sudo apt install docker.io -y"
+                  # Write-Output $res.Output
+                  # Start-Sleep -Second 25
+                  # Invoke-SSHCommand -SessionId $session.SessionId -Command "docker --version"
           
-                  Start-Sleep -Second 5
+                  # Set-Location ..
+                  # Set-Location HelloWorld
+          
+                  # echo 'Q!w2e3r4t5y6u7' | sudo -S docker build -t automation_app:latest .
+          
+                  # Set-Location ..
+          
+                  # Set-Location Install_App_VM_Ansible
+                  # pwd
+                  # ls
+          
+                  # echo 'Q!w2e3r4t5y6u7' | sudo -S docker save -o automation_app.tar automation_app:latest
+          
+                  # Start-Sleep -Second 5
 
-                  Write-Host "SCP File transfer started!"
-                  echo '12345' | sudo -S sshpass -p 'Dbs@1234567' scp -o StrictHostKeyChecking=no automation_app.tar azureadmin@$publicIP':/home/azureadmin/'
-                  Write-Host "SCP File transfer completed!"
-                  Start-Sleep -Second 5
+                  # Write-Host "SCP File transfer started!"
+                  # echo 'Q!w2e3r4t5y6u7' | sudo -S sshpass -p 'Dbs@1234567' scp -o StrictHostKeyChecking=no automation_app.tar azureadmin@$publicIP':/home/azureadmin/'
+                  # Write-Host "SCP File transfer completed!"
+                  # Start-Sleep -Second 5
           
-                  $docker_load = Invoke-SSHCommand -SessionId $session.SessionId -Command "echo 'Dbs@1234567' | sudo -S docker load -i /home/azureadmin/automation_app.tar"
-                  Write-Output $docker_load.Output
+                  # $docker_load = Invoke-SSHCommand -SessionId $session.SessionId -Command "echo 'Dbs@1234567' | sudo -S docker load -i /home/azureadmin/automation_app.tar"
+                  # Write-Output $docker_load.Output
           
-                  $removeFile = Invoke-SSHCommand -SessionId $session.SessionId -Command "rm automation_app.tar"
-                  Write-Output $removeFile.Output
+                  # $removeFile = Invoke-SSHCommand -SessionId $session.SessionId -Command "rm automation_app.tar"
+                  # Write-Output $removeFile.Output
           
-                  $docker_run = Invoke-SSHCommand -SessionId $session.SessionId -Command "echo 'Dbs@1234567' | sudo -S docker run -d -p 80:80 --name my_automation automation_app"
-                  Write-Output $docker_run.Output
+                  # $docker_run = Invoke-SSHCommand -SessionId $session.SessionId -Command "echo 'Dbs@1234567' | sudo -S docker run -d -p 80:80 --name my_automation automation_app"
+                  # Write-Output $docker_run.Output
           
                   Remove-SSHSession -SessionId $session.SessionId
               }
