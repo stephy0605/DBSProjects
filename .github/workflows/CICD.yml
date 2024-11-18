@@ -10,6 +10,31 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v3
+      - name: Update apt and install prerequisites
+        run: |
+          sudo apt update -y || true
+          sudo apt upgrade -y || true
+          
+          sudo apt install -y ansible
+          echo "############# Ansible Version #############"
+          ansible --version
+          echo "############# Ansible Version #############"
+          
+          sudo apt-get install -y powershell
+          echo "############# Powershell Version #############"
+          pwsh --version
+          echo "############# Powershell Version #############"
+          
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash || true
+          echo "############# AZ Version #############"
+          az --version
+          echo "############# AZ Version #############"
+          sudo apt install -y docker.io
+          sudo service docker start
+          sudo service docker status || true
+          echo "############# Docker Version #############"
+          docker --version
+          echo "############# Docker Version #############"
 
       - name: Deploy Docker Image to Infrastructure
         shell: pwsh
@@ -26,7 +51,7 @@ jobs:
           {
               $hostsContent = @"
           [azure_vm]
-          azure_vms ansible_host=$ip ansible_user=azureadmin ansible_ssh_private_key_file=~/.ssh/id_rsa
+          azure_vms ansible_host=$ip ansible_user=${{ secrets.AZURE_USER }}
           "@
               $hostsFilePath = "hosts.ini"
               $hostsContent | Out-File -FilePath $hostsFilePath -Encoding UTF8
