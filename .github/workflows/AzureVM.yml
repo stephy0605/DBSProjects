@@ -55,7 +55,7 @@ jobs:
           # $username = ${{ secrets.AZURE_USER }}
           # $password = ${{ secrets.AZURE_PASS }}
           $username = 'azureadmin'
-          $password = 'Dbs@123'
+          $password = 'Dbs@1234567'
           
           Set-Location Terraform_Scripts
           try 
