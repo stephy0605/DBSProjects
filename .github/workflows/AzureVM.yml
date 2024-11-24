@@ -19,6 +19,7 @@ jobs:
           ansible --version
           echo "############# Ansible Version #############"
           sudo apt-get install -y powershell
+          sudo apt-get install -y sshpass 
           echo "############# Powershell Version #############"
           pwsh --version
           echo "############# Powershell Version #############"
