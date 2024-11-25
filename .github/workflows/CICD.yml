@@ -5,7 +5,7 @@ on:
       main
 jobs:
   terraform-deploy:
-    runs-on: devops
+    runs-on: DevOps
 
     steps:
       - name: Check out repository
@@ -15,24 +15,25 @@ jobs:
           sudo apt update -y || true
           sudo apt upgrade -y || true
           
-          sudo apt install -y ansible
           echo "############# Ansible Version #############"
+          sudo apt install -y ansible
           ansible --version
           echo "############# Ansible Version #############"
           
-          sudo apt-get install -y powershell
           echo "############# Powershell Version #############"
+          sudo apt-get install -y powershell
           pwsh --version
           echo "############# Powershell Version #############"
           
-          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash || true
           echo "############# AZ Version #############"
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash || true
           az --version
           echo "############# AZ Version #############"
+          
+          echo "############# Docker Version #############"
           sudo apt install -y docker.io
           sudo service docker start
           sudo service docker status || true
-          echo "############# Docker Version #############"
           docker --version
           echo "############# Docker Version #############"
 
@@ -58,5 +59,3 @@ jobs:
               Write-Host "hosts.ini file has been created at $hostsFilePath"
               ansible-playbook -i hosts.ini "./deploy_docker_image.yml" -e ansible_password=${{ secrets.MY_PASSWORD }}
           }
-
-          

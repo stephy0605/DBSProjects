@@ -3,10 +3,10 @@
   hosts: azure_vms
   become: true
   vars:
-    docker_image_tar: "automated_app.tar"  # Local path to the tar file
-    image_name: "automated_app"  # Name for the image to be used in the container
-    container_name: "my_automation"  # Name for the running container
-    docker_image_tar_dest: "/home/azureadmin/automated_app.tar"  # Path on the Azure VM where the tar file will be copied
+    docker_image_tar: "automated_app.tar"
+    image_name: "automated_app"
+    container_name: "my_automation"
+    docker_image_tar_dest: "/home/azureadmin/automated_app.tar"
 
   tasks:
     - name: Ensure Docker is installed
@@ -40,7 +40,7 @@
         state: started
         restart_policy: always
         ports:
-          - "80:80"  # Example port mapping, adjust as needed
+          - "80:80"
 
     - name: Clean up the uploaded tar file
       file:

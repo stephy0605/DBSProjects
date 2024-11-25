@@ -1,12 +1,12 @@
 name: Create Azure VM Instance
- 
+
 on: 
   workflow_dispatch
- 
+
 jobs:
   terraform-deploy:
-    runs-on: devops
- 
+    runs-on: DevOps
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -19,7 +19,6 @@ jobs:
           ansible --version
           echo "############# Ansible Version #############"
           sudo apt-get install -y powershell
-          sudo apt-get install -y sshpass 
           echo "############# Powershell Version #############"
           pwsh --version
           echo "############# Powershell Version #############"
@@ -27,8 +26,8 @@ jobs:
           echo "############# Terraform Version #############"
           terraform --version
           echo "############# Terraform Version #############"
-          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash || true
           echo "############# AZ Version #############"
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash || true
           az --version
           echo "############# AZ Version #############"
           sudo apt install -y docker.io
@@ -37,19 +36,17 @@ jobs:
           echo "############# Docker Version #############"
           docker --version
           echo "############# Docker Version #############"
- 
- 
-      
- 
- 
+
       # Step 3: Authenticate with Azure using email and password
       - name: Deploy a Azure VM and install a new Application
         shell: pwsh
         run: |
           Install-Module -Name Posh-SSH -Force -AllowClobber
           Import-Module Posh-SSH
-          $username = 'azureadmin'
-          $password = 'Dbs@1234567'
+          
+          $username = ${{ secrets.AZURE_USER }}
+          $password = ${{ secrets.AZURE_PASS }}
+          
           Set-Location Terraform_Scripts
           try 
           {
@@ -58,22 +55,27 @@ jobs:
               if ($LASTEXITCODE -ne 0) {
                   throw "Error: Terraform init failed."
               }
+          
               Write-Output "Creating Terraform plan..."
               terraform plan -out main.tfplan
               if ($LASTEXITCODE -ne 0) {
                   throw "Error: Terraform plan failed."
               }
+          
               Write-Output "Applying Terraform plan..."
               terraform apply main.tfplan
               if ($LASTEXITCODE -ne 0) {
                   throw "Error: Terraform apply failed."
               }
+          
               Write-Output "Terraform operations completed successfully."    
+          
               $json = terraform output -json
               $parsedJson = $json | ConvertFrom-Json
               $publicIpAddress = "$($parsedJson.public_ip_address.value)"
               $publicIP = $publicIpAddress
               Write-Output $publicIP
+              
               Start-Sleep -Second 15
               $keyPath = "~/.ssh/id_rsa"
               $publicKeyPath = "~/.ssh/id_rsa.pub"  
@@ -83,21 +85,22 @@ jobs:
                   echo "yes" | ssh-keygen -t rsa -b 2048 -f ~/.ssh/id_rsa -N "" -v
                   Write-Host "SSH Key generated"
               }
+              
               $publicKeyContent = Get-Content $publicKeyPath
               $passwordSecure = ConvertTo-SecureString -AsPlainText -String $password -Force
               $credential = New-Object System.Management.Automation.PSCredential($username, $passwordSecure)
               $session = New-SSHSession -ComputerName $publicIP -Credential $credential -AcceptKey
+              
               if ($session.Connected) 
               {
                   Write-Host "Connected to VM successfully."
                   $remoteAuthorizedKeysPath = "/home/azureadmin/.ssh/authorized_keys"
- 
                   Invoke-SSHCommand -SessionId $session.SessionId -Command "mkdir -p /home/azureadmin/.ssh"
                   Invoke-SSHCommand -SessionId $session.SessionId -Command "echo '$publicKeyContent' >> $remoteAuthorizedKeysPath"
                   Invoke-SSHCommand -SessionId $session.SessionId -Command "chmod 600 $remoteAuthorizedKeysPath"
                   Invoke-SSHCommand -SessionId $session.SessionId -Command "chmod 700 ~/.ssh/"
                   Write-Host "Public key added to the remote VM."
- 
+
                   $vm_ips = az vm list-ip-addresses --query "[].virtualMachine.network.publicIpAddresses[].ipAddress" -o tsv
                   Set-Location ..
                   Set-Location HelloWorld
